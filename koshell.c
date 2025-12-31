@@ -38,6 +38,12 @@ int main () {
 
     if (strcmp(argv[0], "cd") == 0) {
       chdir(argv[1]);
+    } else if (strcmp(argv[0], "exit") == 0) {
+      // included user specified exit code for completeness
+      int code = (argv[1] != NULL) ? atoi(argv[1]) : 0;
+      // != NULL not because at default uninitialized indices in arrays are null
+      // but it alr guarantees that the first unused index is NULL
+      exit(code);
     } else {
       pid_t pid = fork();
 
