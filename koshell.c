@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <fcntl.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <string.h>
 
@@ -32,9 +34,15 @@ int main () {
 
     parse_strtok(argv, line);
 
-    
+    pid_t pid = fork();
 
-
+    if (pid == 0) {
+      execvp(argv[0], argv);
+      perror("execvp");
+      exit(1);
+    } else {
+      waitpid(pid, NULL, 0);
+    }
 
   }
 }
