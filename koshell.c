@@ -7,7 +7,7 @@
 
 #define MAXARGS 64
 
-void parse_strtok(char *argv[], char *line) {
+int parse_strtok(char *argv[], char *line) {
   int argc = 0;
   char *token = strtok(line, " \t\n");
 
@@ -16,6 +16,8 @@ void parse_strtok(char *argv[], char *line) {
       token = strtok(NULL, " \t\n");
   }
   argv[argc] = NULL;
+
+  return argc;
 }
 
 int main () {
@@ -25,26 +27,36 @@ int main () {
   ssize_t n;
   char *argv[MAXARGS];
   char cwd[1024];
+  size_t argc = 0;
 
   while (1) {
     getcwd(cwd, sizeof(cwd));
     printf("koshell:%s> ", cwd);
     fflush(stdout);
     
+    int background = 0;
+
     n = getline(&line, &cap, stdin);
     if (n == -1) break;
 
-    parse_strtok(argv, line);
+    argc = parse_strtok(argv, line);
+
 
     if (argv[0] == NULL) continue;
 
+    if (strcmp(argv[argc - 1], "&") == 0) {
+      background = 1;
+      argv[argc-1] = NULL;
+    }
+
     if (strcmp(argv[0], "cd") == 0) {
-      chdir((argv[1] != NULL) ? argv[1] : "/home");
+      const char *dir =(argv[1] != NULL) ? argv[1] : "/home";
+      if(chdir(dir) != 0) perror("cd");
     } else if (strcmp(argv[0], "exit") == 0) {
-      // included user specified exit code for completeness
+            // included user specified exit code for completeness
       int code = (argv[1] != NULL) ? atoi(argv[1]) : 0;
-      // != NULL not because at default uninitialized indices in arrays are null
-      // but it alr guarantees that the first unused index is NULL
+            // != NULL not because at default uninitialized indices in arrays are null
+            // but it alr guarantees that the first unused index is NULL
       exit(code);
     } else {
       pid_t pid = fork();
@@ -54,11 +66,9 @@ int main () {
         perror("execvp");
         exit(1);
       } else {
-        waitpid(pid, NULL, 0);
+        if (background) printf("[pid] %d\n", pid);
+        else waitpid(pid, NULL, 0);
       }
     }
-
-    
-
   }
 }
