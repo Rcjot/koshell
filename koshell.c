@@ -36,8 +36,10 @@ int main () {
 
     parse_strtok(argv, line);
 
+    if (argv[0] == NULL) continue;
+
     if (strcmp(argv[0], "cd") == 0) {
-      chdir(argv[1]);
+      chdir((argv[1] != NULL) ? argv[1] : "/home");
     } else if (strcmp(argv[0], "exit") == 0) {
       // included user specified exit code for completeness
       int code = (argv[1] != NULL) ? atoi(argv[1]) : 0;
