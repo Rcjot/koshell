@@ -24,9 +24,11 @@ int main () {
   size_t cap = 0;
   ssize_t n;
   char *argv[MAXARGS];
+  char cwd[1024];
 
   while (1) {
-    printf("koshell> ");
+    getcwd(cwd, sizeof(cwd));
+    printf("koshell:%s> ", cwd);
     fflush(stdout);
     
     n = getline(&line, &cap, stdin);
@@ -34,15 +36,21 @@ int main () {
 
     parse_strtok(argv, line);
 
-    pid_t pid = fork();
-
-    if (pid == 0) {
-      execvp(argv[0], argv);
-      perror("execvp");
-      exit(1);
+    if (strcmp(argv[0], "cd") == 0) {
+      chdir(argv[1]);
     } else {
-      waitpid(pid, NULL, 0);
+      pid_t pid = fork();
+
+      if (pid == 0) {
+        execvp(argv[0], argv);
+        perror("execvp");
+        exit(1);
+      } else {
+        waitpid(pid, NULL, 0);
+      }
     }
+
+    
 
   }
 }
