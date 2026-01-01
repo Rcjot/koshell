@@ -36,6 +36,7 @@ int tokenizer(Token *tokens, char *line, int line_length) {
   while (i < line_length) {
     if (is_whitespace(line[i])) {
       i++;
+      continue;
     } else if (line[i] == '|') {
       Token new_token =  {TOK_PIPE, NULL};
       tokens[argc] = new_token;
@@ -53,7 +54,7 @@ int tokenizer(Token *tokens, char *line, int line_length) {
       tokens[argc] = new_token;
       i++;
     } else {
-      char token_value[128];
+      char *token_value = malloc(128);
       int s = 0;
       while (!is_whitespace(line[i]) && !is_builtin(line[i])  && i < line_length) {
         printf("%d %d %c %d %d\n", s, i, line[i], line_length, !is_whitespace(line[i]));
@@ -69,8 +70,8 @@ int tokenizer(Token *tokens, char *line, int line_length) {
       
       Token new_token = {TOK_WORD, token_value};
       tokens[argc] = new_token;
-      argc++;
     }
+    argc++;
 
   }
   return argc;
@@ -86,7 +87,6 @@ int main () {
   char *argv[MAXARGS];
   char cwd[1024];
   size_t argc = 0;
-  size_t argc2 = 0;
   int fd[2];
   Token *tokens;
 
@@ -101,19 +101,22 @@ int main () {
     if (n == -1) break;
 
 
-    // argc = parse_strtok(argv, line);
-    argc2 = tokenizer(tokens, line, n);
+    argc = tokenizer(tokens, line, n);
 
 
 
-    if (argc2 == 0) continue;
+    if (argc == 0) continue;
 
     // if (strcmp(argv[argc - 1], "&") == 0) {
     //   background = 1;
     //   argv[argc-1] = NULL;
     // }
 
-    printf("tokens: %ld \n", argc2);
+    printf("tokens: %ld \n", argc);
+
+    for (int i = 0; i < argc; i++) {
+      printf("%d %s\n", tokens[i].type, tokens[i].value);
+    }
 
     // if (strcmp(argv[0], "cd") == 0) {
     //   const char *dir =(argv[1] != NULL) ? argv[1] : "/home";
