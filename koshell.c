@@ -16,21 +16,21 @@ int is_builtin(char mychar) {
   else return 0;
 }
 
-int parse_strtok(char *argv[], char *line) {
-  int argc = 0;
+int parse_strtok(char *tokens[], char *line) {
+  int tokenc = 0;
   char *token = strtok(line, " \t\n");
 
   while (token != NULL) {
-      argv[argc++] = token;
+      tokens[tokenc++] = token;
       token = strtok(NULL, " \t\n");
   }
-  argv[argc] = NULL;
+  tokens[tokenc] = NULL;
 
-  return argc;
+  return tokenc;
 }
 
 int tokenizer(Token *tokens, char *line, int line_length) {
-  int argc = 0;
+  int tokenc = 0;
   int i = 0;
 
   while (i < line_length) {
@@ -39,25 +39,25 @@ int tokenizer(Token *tokens, char *line, int line_length) {
       continue;
     } else if (line[i] == '|') {
       Token new_token =  {TOK_PIPE, NULL};
-      tokens[argc] = new_token;
+      tokens[tokenc] = new_token;
       i++;
     } else if (line [i] == '<') {
       Token new_token = {TOK_REDIR_IN, NULL};
-      tokens[argc] = new_token;
+      tokens[tokenc] = new_token;
       i++;
     } else if (line[i] == '>') {
       Token new_token =  {TOK_REDIR_OUT, NULL};
-      tokens[argc] = new_token;
+      tokens[tokenc] = new_token;
       i++;
     } else if (line[i] == '>' && line[i+1] == '>') {
       Token new_token = {TOK_APPEND, NULL};
-      tokens[argc] = new_token;
+      tokens[tokenc] = new_token;
       i++;
     } else {
       char *token_value = malloc(128);
       int s = 0;
       while (!is_whitespace(line[i]) && !is_builtin(line[i])  && i < line_length) {
-        printf("%d %d %c %d %d\n", s, i, line[i], line_length, !is_whitespace(line[i]));
+        // printf("%d %d %c %d %d\n", s, i, line[i], line_length, !is_whitespace(line[i]));
         token_value[s] = line[i];
         i++;
         s++;
@@ -69,12 +69,20 @@ int tokenizer(Token *tokens, char *line, int line_length) {
       }
       
       Token new_token = {TOK_WORD, token_value};
-      tokens[argc] = new_token;
+      tokens[tokenc] = new_token;
     }
-    argc++;
+    Token null_token = {TOK_NULL, NULL};
+    tokens[tokenc + 1] = null_token;
+    // for convention and clarity, token after last should be null
+    tokenc++;
 
   }
-  return argc;
+  return tokenc;
+}
+
+int parse_tokens(Command *commands, Token *tokens) {
+
+
 }
 
 
@@ -84,11 +92,12 @@ int main () {
   char *line = NULL;
   size_t cap = 0;
   ssize_t n;
-  char *argv[MAXARGS];
   char cwd[1024];
-  size_t argc = 0;
+  size_t tokenc = 0;
+  size_t commandsc = 0;
   int fd[2];
-  Token *tokens;
+  Token tokens[MAXARGS];
+  Command *commands;
 
   while (1) {
     getcwd(cwd, sizeof(cwd));
@@ -101,43 +110,51 @@ int main () {
     if (n == -1) break;
 
 
-    argc = tokenizer(tokens, line, n);
+    tokenc = tokenizer(tokens, line, n);
 
 
 
-    if (argc == 0) continue;
+    if (tokenc == 0) continue;
 
-    // if (strcmp(argv[argc - 1], "&") == 0) {
-    //   background = 1;
-    //   argv[argc-1] = NULL;
-    // }
-
-    printf("tokens: %ld \n", argc);
-
-    for (int i = 0; i < argc; i++) {
-      printf("%d %s\n", tokens[i].type, tokens[i].value);
+    if (strcmp(tokens[tokenc - 1].value, "&") == 0) {
+      background = 1;
+      Token null_token = {TOK_NULL, NULL};
+      tokens[tokenc-1] = null_token;
     }
 
-    // if (strcmp(argv[0], "cd") == 0) {
-    //   const char *dir =(argv[1] != NULL) ? argv[1] : "/home";
-    //   if(chdir(dir) != 0) perror("cd");
-    // } else if (strcmp(argv[0], "exit") == 0) {
-    //         // included user specified exit code for completeness
-    //   int code = (argv[1] != NULL) ? atoi(argv[1]) : 0;
-    //         // != NULL not because at default uninitialized indices in arrays are null
-    //         // but it alr guarantees that the first unused index is NULL
-    //   exit(code);
-    // } else {
-    //   pid_t pid = fork();
-    //
-    //   if (pid == 0) {
-    //     execvp(argv[0], argv);
-    //     perror("execvp");
-    //     exit(1);
-    //   } else {
-    //     if (background) printf("[pid] %d\n", pid);
-    //     else waitpid(pid, NULL, 0);
-    //   }
+    printf("tokens: %ld \n", tokenc);
+
+    // for (int i = 0; i < tokenc; i++) {
+    //   printf("%d %s\n", tokens[i].type, tokens[i].value);
     // }
+
+    if (strcmp(tokens[0].value, "cd") == 0) {
+      const char *dir =(tokens[1].type == TOK_WORD) ? tokens[1].value : "/home";
+      if(chdir(dir) != 0) perror("cd");
+    } else if (strcmp(tokens[0].value, "exit") == 0) {
+            // included user specified exit code for completeness
+      int code = (tokens[1].type == TOK_WORD) ? atoi(tokens[1].value) : 0;
+            // != NULL not because at default uninitialized indices in arrays are null
+            // but it alr guarantees that the first unused index is NULL
+      exit(code);
+    } else {
+      pid_t pid = fork();
+
+      if (pid == 0) {
+        char *argv[MAXARGS];
+        for (int i = 0; i < tokenc; i++) {
+          argv[i] = tokens[i].value;
+        }
+        // for (int i = 0; i < tokenc; i++) {
+        //   printf("%s\n", argv[i]);
+        // }
+        execvp(tokens[0].value, argv);
+        perror("execvp");
+        exit(1);
+      } else {
+        if (background) printf("[pid] %d\n", pid);
+        else waitpid(pid, NULL, 0);
+      }
+    }
   }
 }

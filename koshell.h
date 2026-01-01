@@ -8,7 +8,8 @@ typedef enum {
   TOK_PIPE,
   TOK_REDIR_IN,
   TOK_REDIR_OUT,
-  TOK_APPEND
+  TOK_APPEND,
+  TOK_NULL
 } TokenType;
 
 typedef struct {
@@ -16,6 +17,10 @@ typedef struct {
   char *value;
 } Token;
 
-
+typedef struct {
+  char **argv;
+  int in_fd;
+  int out_fd;
+} Command;
 
 #endif 
