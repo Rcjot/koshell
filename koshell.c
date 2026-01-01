@@ -4,8 +4,17 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <string.h>
+#include "koshell.h"
 
-#define MAXARGS 64
+int is_whitespace(char mychar) {
+  if (mychar == '\n' || mychar == ' ' || mychar == '\t') return 1;
+  else return 0;
+}
+
+int is_builtin(char mychar) {
+  if (mychar == '|' || mychar == '<' || mychar == '>') return 1;
+  else return 0;
+}
 
 int parse_strtok(char *argv[], char *line) {
   int argc = 0;
@@ -20,6 +29,55 @@ int parse_strtok(char *argv[], char *line) {
   return argc;
 }
 
+int tokenizer(Token *tokens, char *line, int line_length) {
+  int argc = 0;
+  int i = 0;
+
+  while (i < line_length) {
+    if (is_whitespace(line[i])) {
+      i++;
+    } else if (line[i] == '|') {
+      Token new_token =  {TOK_PIPE, NULL};
+      tokens[argc] = new_token;
+      i++;
+    } else if (line [i] == '<') {
+      Token new_token = {TOK_REDIR_IN, NULL};
+      tokens[argc] = new_token;
+      i++;
+    } else if (line[i] == '>') {
+      Token new_token =  {TOK_REDIR_OUT, NULL};
+      tokens[argc] = new_token;
+      i++;
+    } else if (line[i] == '>' && line[i+1] == '>') {
+      Token new_token = {TOK_APPEND, NULL};
+      tokens[argc] = new_token;
+      i++;
+    } else {
+      char token_value[128];
+      int s = 0;
+      while (!is_whitespace(line[i]) && !is_builtin(line[i])  && i < line_length) {
+        printf("%d %d %c %d %d\n", s, i, line[i], line_length, !is_whitespace(line[i]));
+        token_value[s] = line[i];
+        i++;
+        s++;
+      }
+      token_value[s] = '\0';
+
+      if (i == line_length) {
+        break;
+      }
+      
+      Token new_token = {TOK_WORD, token_value};
+      tokens[argc] = new_token;
+      argc++;
+    }
+
+  }
+  return argc;
+}
+
+
+
 int main () {
   
   char *line = NULL;
@@ -28,6 +86,9 @@ int main () {
   char *argv[MAXARGS];
   char cwd[1024];
   size_t argc = 0;
+  size_t argc2 = 0;
+  int fd[2];
+  Token *tokens;
 
   while (1) {
     getcwd(cwd, sizeof(cwd));
@@ -39,36 +100,41 @@ int main () {
     n = getline(&line, &cap, stdin);
     if (n == -1) break;
 
-    argc = parse_strtok(argv, line);
+
+    // argc = parse_strtok(argv, line);
+    argc2 = tokenizer(tokens, line, n);
 
 
-    if (argv[0] == NULL) continue;
 
-    if (strcmp(argv[argc - 1], "&") == 0) {
-      background = 1;
-      argv[argc-1] = NULL;
-    }
+    if (argc2 == 0) continue;
 
-    if (strcmp(argv[0], "cd") == 0) {
-      const char *dir =(argv[1] != NULL) ? argv[1] : "/home";
-      if(chdir(dir) != 0) perror("cd");
-    } else if (strcmp(argv[0], "exit") == 0) {
-            // included user specified exit code for completeness
-      int code = (argv[1] != NULL) ? atoi(argv[1]) : 0;
-            // != NULL not because at default uninitialized indices in arrays are null
-            // but it alr guarantees that the first unused index is NULL
-      exit(code);
-    } else {
-      pid_t pid = fork();
+    // if (strcmp(argv[argc - 1], "&") == 0) {
+    //   background = 1;
+    //   argv[argc-1] = NULL;
+    // }
 
-      if (pid == 0) {
-        execvp(argv[0], argv);
-        perror("execvp");
-        exit(1);
-      } else {
-        if (background) printf("[pid] %d\n", pid);
-        else waitpid(pid, NULL, 0);
-      }
-    }
+    printf("tokens: %ld \n", argc2);
+
+    // if (strcmp(argv[0], "cd") == 0) {
+    //   const char *dir =(argv[1] != NULL) ? argv[1] : "/home";
+    //   if(chdir(dir) != 0) perror("cd");
+    // } else if (strcmp(argv[0], "exit") == 0) {
+    //         // included user specified exit code for completeness
+    //   int code = (argv[1] != NULL) ? atoi(argv[1]) : 0;
+    //         // != NULL not because at default uninitialized indices in arrays are null
+    //         // but it alr guarantees that the first unused index is NULL
+    //   exit(code);
+    // } else {
+    //   pid_t pid = fork();
+    //
+    //   if (pid == 0) {
+    //     execvp(argv[0], argv);
+    //     perror("execvp");
+    //     exit(1);
+    //   } else {
+    //     if (background) printf("[pid] %d\n", pid);
+    //     else waitpid(pid, NULL, 0);
+    //   }
+    // }
   }
 }
