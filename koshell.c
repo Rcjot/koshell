@@ -17,7 +17,7 @@ int is_builtin(char mychar) {
 }
 
 int parse_strtok(char *tokens[], char *line) {
-  int tokenc = 0;
+  size_t tokenc = 0;
   char *token = strtok(line, " \t\n");
 
   while (token != NULL) {
@@ -32,13 +32,13 @@ int parse_strtok(char *tokens[], char *line) {
 int tokenizer(Token *tokens, char *line, int line_length) {
   line[line_length - 1] = '\0';
   // bcus i think getline doesnt automatically append '\0' but '\n'
-  int tokenc = 0;
+  size_t tokenc = 0;
   int i = 0;
-  int bool = is_builtin('\0');
-  printf("%d linelgnth: %d\n", line_length, bool);
+  // int bool = is_builtin('\0');
+  // printf("%d linelgnth: %d\n", line_length, bool);
 
   while (i < line_length) {
-    printf("%c is the character at %d\n", line[i], i);
+    // printf("%c is the character at %d\n", line[i], i);
     if (is_whitespace(line[i])) {
       i++;
       continue;
@@ -64,33 +64,25 @@ int tokenizer(Token *tokens, char *line, int line_length) {
       int s = 0;
 
       while (!is_whitespace(line[i]) && !is_builtin(line[i])  && i < line_length) {
-        printf("%d %d %c %d %d\n", s, i, line[i], line_length, !is_whitespace(line[i]));
-        // printf("hey\n");
+        // printf("%d %d %c %d %d\n", s, i, line[i], line_length, !is_whitespace(line[i]));
         token_value[s] = line[i];
         i++;
         s++;
-        // printf("----token_value_idx: %d line_idx: %d char: %c line_len: %d bool:%d\n", s, i, line[i], line_length, !is_whitespace(line[i]));
       }
       if (token_value[s-1] != '\0') {
         // to handle token to always have \0, two cases: token is between tokens or token is last token
         token_value[s] = '\0';
       }
-
-      // if (i == line_length) {
-      //   break;
-      // }
       
       Token new_token = {TOK_WORD, token_value};
       tokens[tokenc] = new_token;
     }
-    // Token null_token = {TOK_NULL, NULL};
-    // tokens[++tokenc] = null_token;
     // for convention and clarity, token after last should be null
     tokenc++;
 
   }
 
-  printf("passed last tokenc is %d\n", tokenc);
+  // printf("passed last tokenc is %ld\n", tokenc);
   Token null_token = {TOK_NULL, NULL};
   tokens[tokenc++] = null_token;
   // for convention and clarity, to mark end of token list should be null
@@ -99,23 +91,18 @@ int tokenizer(Token *tokens, char *line, int line_length) {
 }
 
 int parse_tokens(Command *commands, Token *tokens, int tokenc) {
-  int argc = 0;
   int commandc = 0;
   commands[commandc].argv.size = 0;
   commands[commandc].argv.capacity = 10;
   commands[commandc].argv.data = malloc(sizeof(char *) * 10);
 
   for (int i = 0; i < tokenc; i++) {
-    printf("seeing %s at index %d with type %d\n", tokens[i].value, i, tokens[i].type);
+    // printf("seeing %s at index %d with type %d\n", tokens[i].value, i, tokens[i].type);
     switch(tokens[i].type) {
       case TOK_WORD :
         
-        // int *size = &commands[commandc].argv.size;
-        // commands[commandc].argv.data[*size] =  tokens[i].value;
-        // (*size)++;
-
         push(&commands[commandc].argv, tokens[i].value);
-        printf(" %s pushed\n", tokens[i].value);
+        // printf(" %s pushed\n", tokens[i].value);
 
         break;
       case TOK_PIPE :
@@ -134,6 +121,7 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
       case TOK_APPEND :
         break;
       case TOK_NULL :
+        commandc++;
         break;
     }
 
@@ -153,13 +141,14 @@ int main () {
   ssize_t n;
   char cwd[1024];
   size_t tokenc = 0;
-  int commandc = 0;
-  int fd[2];
+  size_t commandc = 0;
   Token tokens[MAXARGS];
   Command *commands = malloc(sizeof(Command) * INIT_COMMAND_SIZE);
 
   while (1) {
-    getcwd(cwd, sizeof(cwd));
+    if(getcwd(cwd, sizeof(cwd)) == NULL) {
+      perror("getcwd");
+    }
     printf("koshell:%s> ", cwd);
     fflush(stdout);
     
@@ -175,14 +164,16 @@ int main () {
 
 
     printf("tokens: %ld \n", tokenc);
+    printf("commands: %ld \n", commandc);
 
-    for (int i = 0; i < tokenc; i++) {
-      printf("%d %s\n", tokens[i].type, tokens[i].value);
-    }
+    // for (size_t i = 0; i < tokenc; i++) {
+    //   printf("%d %s\n", tokens[i].type, tokens[i].value);
+    // }
 
     if (tokenc == 0) continue;
 
     // tokenc -1 -1 because we want to look at second to the last token, since last is null token
+    // tokenc is guranteed to atleast have length 2
     if (strcmp(tokens[tokenc - 1 -1].value, "&") == 0) {
       background = 1;
       Token null_token = {TOK_NULL, NULL};
@@ -205,11 +196,11 @@ int main () {
       pid_t pid = fork();
 
       if (pid == 0) {
-        printf("child performing\n");
+        // printf("child performing\n");
         char *argv[MAXARGS];
         int tokenc_notnull = 0;
-        for (int i = 0; i < tokenc - 1; i++) {
-          printf("%s %d\n", tokens[i].value, i);
+        for (size_t i = 0; i < tokenc - 1; i++) {
+          // printf("%s %d\n", tokens[i].value, i);
           argv[tokenc_notnull] = tokens[i].value;
           tokenc_notnull++;
         }
