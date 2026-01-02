@@ -2,6 +2,13 @@
 #define KOSHELL_H
 
 #define MAXARGS 64
+#define INIT_COMMAND_SIZE 10
+
+typedef struct {
+  int capacity;
+  int size;
+  char **data;
+} DynArgv;
 
 typedef enum {
   TOK_WORD,
@@ -18,7 +25,7 @@ typedef struct {
 } Token;
 
 typedef struct {
-  char **argv;
+  DynArgv argv;
   int in_fd;
   int out_fd;
 } Command;

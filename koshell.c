@@ -72,7 +72,7 @@ int tokenizer(Token *tokens, char *line, int line_length) {
       tokens[tokenc] = new_token;
     }
     Token null_token = {TOK_NULL, NULL};
-    tokens[tokenc + 1] = null_token;
+    tokens[++tokenc] = null_token;
     // for convention and clarity, token after last should be null
     tokenc++;
 
@@ -80,7 +80,42 @@ int tokenizer(Token *tokens, char *line, int line_length) {
   return tokenc;
 }
 
-int parse_tokens(Command *commands, Token *tokens) {
+int parse_tokens(Command *commands, Token *tokens, int tokenc) {
+  int argc = 0;
+  int commandc = 0;
+  for (int i = 0; i < tokenc; i++) {
+    switch(tokens[i].type) {
+      case TOK_WORD :
+        // commands[argc].argv -> data = malloc(sizeof(char *) *  10);
+        // commands[argc].argv -> size = 0;
+        // commands[argc].argv -> capacity = 0;
+        //
+        i++;
+
+        
+
+
+
+        break;
+      case TOK_PIPE :
+        commandc++;
+        break;
+      case TOK_REDIR_IN :
+        commandc++;
+        break;
+      case TOK_REDIR_OUT :
+        commandc++;
+        break;
+      case TOK_APPEND :
+        commandc++;
+        break;
+      case TOK_NULL :
+        commandc++;
+        i++;
+        break;
+    }
+
+  }
 
 
 }
@@ -97,7 +132,7 @@ int main () {
   size_t commandsc = 0;
   int fd[2];
   Token tokens[MAXARGS];
-  Command *commands;
+  Command *commands = malloc(sizeof(Command) * INIT_COMMAND_SIZE);
 
   while (1) {
     getcwd(cwd, sizeof(cwd));
@@ -113,20 +148,23 @@ int main () {
     tokenc = tokenizer(tokens, line, n);
 
 
+    printf("tokens: %ld \n", tokenc);
+
+    for (int i = 0; i < tokenc; i++) {
+      printf("%d %s\n", tokens[i].type, tokens[i].value);
+    }
 
     if (tokenc == 0) continue;
 
-    if (strcmp(tokens[tokenc - 1].value, "&") == 0) {
+    // tokenc -1 -1 because we want to look at second to the last token, since last is null token
+    if (strcmp(tokens[tokenc - 1 -1].value, "&") == 0) {
       background = 1;
       Token null_token = {TOK_NULL, NULL};
       tokens[tokenc-1] = null_token;
     }
 
-    printf("tokens: %ld \n", tokenc);
 
-    // for (int i = 0; i < tokenc; i++) {
-    //   printf("%d %s\n", tokens[i].type, tokens[i].value);
-    // }
+    
 
     if (strcmp(tokens[0].value, "cd") == 0) {
       const char *dir =(tokens[1].type == TOK_WORD) ? tokens[1].value : "/home";
@@ -142,8 +180,13 @@ int main () {
 
       if (pid == 0) {
         char *argv[MAXARGS];
+        int tokenc_notnull = 0;
         for (int i = 0; i < tokenc; i++) {
-          argv[i] = tokens[i].value;
+          if (tokens[i].type != TOK_NULL) {
+            printf("%s\n", tokens[i].value);
+            argv[tokenc_notnull] = tokens[i].value;
+            tokenc_notnull++;
+          }
         }
         // for (int i = 0; i < tokenc; i++) {
         //   printf("%s\n", argv[i]);
