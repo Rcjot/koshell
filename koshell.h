@@ -30,4 +30,6 @@ typedef struct {
   int out_fd;
 } Command;
 
+void push(DynArgv *arr, char *token);
+
 #endif 

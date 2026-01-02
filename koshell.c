@@ -30,10 +30,15 @@ int parse_strtok(char *tokens[], char *line) {
 }
 
 int tokenizer(Token *tokens, char *line, int line_length) {
+  line[line_length - 1] = '\0';
+  // bcus i think getline doesnt automatically append '\0' but '\n'
   int tokenc = 0;
   int i = 0;
+  int bool = is_builtin('\0');
+  printf("%d linelgnth: %d\n", line_length, bool);
 
   while (i < line_length) {
+    printf("%c is the character at %d\n", line[i], i);
     if (is_whitespace(line[i])) {
       i++;
       continue;
@@ -57,17 +62,23 @@ int tokenizer(Token *tokens, char *line, int line_length) {
       char *token_value = malloc(128);
       // i did not handle anything for tokens that exceed 128 characters
       int s = 0;
+
       while (!is_whitespace(line[i]) && !is_builtin(line[i])  && i < line_length) {
-        // printf("%d %d %c %d %d\n", s, i, line[i], line_length, !is_whitespace(line[i]));
+        printf("%d %d %c %d %d\n", s, i, line[i], line_length, !is_whitespace(line[i]));
+        // printf("hey\n");
         token_value[s] = line[i];
         i++;
         s++;
+        // printf("----token_value_idx: %d line_idx: %d char: %c line_len: %d bool:%d\n", s, i, line[i], line_length, !is_whitespace(line[i]));
       }
-      token_value[s] = '\0';
+      if (token_value[s-1] != '\0') {
+        // to handle token to always have \0, two cases: token is between tokens or token is last token
+        token_value[s] = '\0';
+      }
 
-      if (i == line_length) {
-        break;
-      }
+      // if (i == line_length) {
+      //   break;
+      // }
       
       Token new_token = {TOK_WORD, token_value};
       tokens[tokenc] = new_token;
@@ -79,8 +90,9 @@ int tokenizer(Token *tokens, char *line, int line_length) {
 
   }
 
+  printf("passed last tokenc is %d\n", tokenc);
   Token null_token = {TOK_NULL, NULL};
-  tokens[++tokenc] = null_token;
+  tokens[tokenc++] = null_token;
   // for convention and clarity, to mark end of token list should be null
 
   return tokenc;
@@ -94,17 +106,21 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
   commands[commandc].argv.data = malloc(sizeof(char *) * 10);
 
   for (int i = 0; i < tokenc; i++) {
+    printf("seeing %s at index %d with type %d\n", tokens[i].value, i, tokens[i].type);
     switch(tokens[i].type) {
       case TOK_WORD :
-        // commands[argc].argv -> data = malloc(sizeof(char *) *  10);
-        // commands[argc].argv -> size = 0;
-        // commands[argc].argv -> capacity = 0;
-        //
-        i++;
+        
+        // int *size = &commands[commandc].argv.size;
+        // commands[commandc].argv.data[*size] =  tokens[i].value;
+        // (*size)++;
+
+        push(&commands[commandc].argv, tokens[i].value);
+        printf(" %s pushed\n", tokens[i].value);
 
         break;
       case TOK_PIPE :
         commandc++;
+
         commands[commandc].argv.data = malloc(sizeof(char *) * 10);
         commands[commandc].argv.size = 0;
         commands[commandc].argv.capacity = 10;
@@ -118,11 +134,12 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
       case TOK_APPEND :
         break;
       case TOK_NULL :
-        i++;
         break;
     }
 
   }
+
+  return commandc;
 
 
 }
@@ -136,7 +153,7 @@ int main () {
   ssize_t n;
   char cwd[1024];
   size_t tokenc = 0;
-  size_t commandsc = 0;
+  int commandc = 0;
   int fd[2];
   Token tokens[MAXARGS];
   Command *commands = malloc(sizeof(Command) * INIT_COMMAND_SIZE);
@@ -153,6 +170,8 @@ int main () {
 
 
     tokenc = tokenizer(tokens, line, n);
+
+    commandc = parse_tokens(commands,tokens, tokenc );
 
 
     printf("tokens: %ld \n", tokenc);
