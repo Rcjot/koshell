@@ -55,6 +55,7 @@ int tokenizer(Token *tokens, char *line, int line_length) {
       i++;
     } else {
       char *token_value = malloc(128);
+      // i did not handle anything for tokens that exceed 128 characters
       int s = 0;
       while (!is_whitespace(line[i]) && !is_builtin(line[i])  && i < line_length) {
         // printf("%d %d %c %d %d\n", s, i, line[i], line_length, !is_whitespace(line[i]));
@@ -71,18 +72,27 @@ int tokenizer(Token *tokens, char *line, int line_length) {
       Token new_token = {TOK_WORD, token_value};
       tokens[tokenc] = new_token;
     }
-    Token null_token = {TOK_NULL, NULL};
-    tokens[++tokenc] = null_token;
+    // Token null_token = {TOK_NULL, NULL};
+    // tokens[++tokenc] = null_token;
     // for convention and clarity, token after last should be null
     tokenc++;
 
   }
+
+  Token null_token = {TOK_NULL, NULL};
+  tokens[++tokenc] = null_token;
+  // for convention and clarity, to mark end of token list should be null
+
   return tokenc;
 }
 
 int parse_tokens(Command *commands, Token *tokens, int tokenc) {
   int argc = 0;
   int commandc = 0;
+  commands[commandc].argv.size = 0;
+  commands[commandc].argv.capacity = 10;
+  commands[commandc].argv.data = malloc(sizeof(char *) * 10);
+
   for (int i = 0; i < tokenc; i++) {
     switch(tokens[i].type) {
       case TOK_WORD :
@@ -92,25 +102,22 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         //
         i++;
 
-        
-
-
-
         break;
       case TOK_PIPE :
         commandc++;
+        commands[commandc].argv.data = malloc(sizeof(char *) * 10);
+        commands[commandc].argv.size = 0;
+        commands[commandc].argv.capacity = 10;
+
         break;
       case TOK_REDIR_IN :
-        commandc++;
+        
         break;
       case TOK_REDIR_OUT :
-        commandc++;
         break;
       case TOK_APPEND :
-        commandc++;
         break;
       case TOK_NULL :
-        commandc++;
         i++;
         break;
     }
@@ -179,14 +186,13 @@ int main () {
       pid_t pid = fork();
 
       if (pid == 0) {
+        printf("child performing\n");
         char *argv[MAXARGS];
         int tokenc_notnull = 0;
-        for (int i = 0; i < tokenc; i++) {
-          if (tokens[i].type != TOK_NULL) {
-            printf("%s\n", tokens[i].value);
-            argv[tokenc_notnull] = tokens[i].value;
-            tokenc_notnull++;
-          }
+        for (int i = 0; i < tokenc - 1; i++) {
+          printf("%s %d\n", tokens[i].value, i);
+          argv[tokenc_notnull] = tokens[i].value;
+          tokenc_notnull++;
         }
         // for (int i = 0; i < tokenc; i++) {
         //   printf("%s\n", argv[i]);
