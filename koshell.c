@@ -37,28 +37,34 @@ int tokenizer(Token *tokens, char *line, int line_length) {
   // int bool = is_builtin('\0');
   // printf("%d linelgnth: %d\n", line_length, bool);
 
-  while (i < line_length) {
+  // do not include null terminator in parsing line
+  while (i < line_length - 1) {
     // printf("%c is the character at %d\n", line[i], i);
     if (is_whitespace(line[i])) {
+      // printf("        %c is the character at %d is whitespace\n", line[i], i);
       i++;
       continue;
     } else if (line[i] == '|') {
       Token new_token =  {TOK_PIPE, NULL};
       tokens[tokenc] = new_token;
       i++;
+      tokenc++;
     }  else if (line[i] == '>' && line[i+1] == '>') {
       Token new_token = {TOK_APPEND, NULL};
       tokens[tokenc] = new_token;
       i++;
       i++;
+      tokenc++;
     } else if (line [i] == '<') {
       Token new_token = {TOK_REDIR_IN, NULL};
       tokens[tokenc] = new_token;
       i++;
+      tokenc++;
     } else if (line[i] == '>') {
       Token new_token =  {TOK_REDIR_OUT, NULL};
       tokens[tokenc] = new_token;
       i++;
+      tokenc++;
     } else {
       char *token_value = malloc(128);
       // i did not handle anything for tokens that exceed 128 characters
@@ -77,10 +83,8 @@ int tokenizer(Token *tokens, char *line, int line_length) {
       
       Token new_token = {TOK_WORD, token_value};
       tokens[tokenc] = new_token;
+      tokenc++;
     }
-    // for convention and clarity, token after last should be null
-    tokenc++;
-
   }
 
   // printf("passed last tokenc is %ld\n", tokenc);
@@ -101,7 +105,9 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc, int fds[]) {
   commands[commandc].in_fd = -1;
   commands[commandc].out_fd = -1;
 
-  printf("fds: %d %d\n", fds[0], fds[1]);
+  printf("tokenc: %d\n", tokenc);
+
+  // printf("fds: %d %d\n", fds[0], fds[1]);
 
   for (int i = 0; i < tokenc; i++) {
     // printf("seeing %s at index %d with type %d\n", tokens[i].value, i, tokens[i].type);
@@ -110,16 +116,19 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc, int fds[]) {
     switch(tokens[i].type) {
       case TOK_WORD :
         
+        printf("token %d : %s\n", i,  tokens[i].value);
         push(&commands[commandc].argv, tokens[i].value);
         // printf(" %s pushed\n", tokens[i].value);
 
         break;
       case TOK_PIPE :
-        if (i > 0) {
-          printf("token before : %d\n", tokens[i - 1].type);
-        }
+        printf("current idx : %d\n", i);
+        // if (i > 0) {
+        //   printf("token before : %d %s\n", tokens[i + 1].type, tokens[i + 1].value);
+        // }
         if (i == 0) return -1;
-        if ( tokens[i-1].type >0) return -1;
+        printf("token before : %d %s\n", tokens[i + 1].type, tokens[i + 1].value);
+        if ( tokens[i+1].type > 0) return -1;
 
         commands[commandc].out_fd = fds[1];
         commands[commandc].in_fd = -1;
@@ -138,10 +147,16 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc, int fds[]) {
 
         break;
       case TOK_REDIR_IN :
+        if (i == 0) return -1;
+        if ( tokens[i+1].type > 0) return -1;
         break;
       case TOK_REDIR_OUT :
+        if (i == 0) return -1;
+        if ( tokens[i+1].type > 0) return -1;
         break;
       case TOK_APPEND :
+        if (i == 0) return -1;
+        if ( tokens[i+1].type > 0) return -1;
         break;
       case TOK_NULL :
         push(&commands[commandc].argv, NULL);
@@ -185,6 +200,7 @@ int main () {
     n = getline(&line, &cap, stdin);
     if (n == -1) break;
 
+    printf("line n : %ld\n", n);
   
     if (n == 1) {
       // n == 1 if user input is nothing (enter);
@@ -193,23 +209,26 @@ int main () {
 
 
     tokenc = tokenizer(tokens, line, n);
+    for (size_t i = 0; i < tokenc; i++) {
+      printf("%d %s\n", tokens[i].type, tokens[i].value);
+    }
+    printf("tokens: %ld \n", tokenc);
 
     commandc = parse_tokens(commands,tokens, tokenc, fds);
+    printf("commandc: %ld \n", commandc);
     if (commandc < 0) {
       printf("syntax error: parsing tokens\n");
       continue;
     }
 
 
-    printf("tokens: %ld \n", tokenc);
     printf("commands: %ld \n", commandc);
 
-    for (size_t i = 0; i < tokenc; i++) {
-      printf("%d %s\n", tokens[i].type, tokens[i].value);
-    }
+    
 
 
     for (ssize_t i = 0; i < commandc; i++) {
+      printf("hi: %ld\n", i);
       printf("argv size : %d\n", commands[i].argv.size);
       printf("in_fd: %d, out_fd: %d\n", commands[i].in_fd, commands[i].out_fd);
 
@@ -217,8 +236,10 @@ int main () {
 
 
 
+    printf("heyyy===\n");
 
 
+    printf(" -1 -1 : %s\n", tokens[tokenc - 2].value);
 
 
     if (tokenc == 0) continue;
@@ -227,10 +248,12 @@ int main () {
     // tokenc is guranteed to atleast have length 2
     if (strcmp(tokens[tokenc - 1 -1].value, "&") == 0) {
       background = 1;
+      // i think this is not needed 
       Token null_token = {TOK_NULL, NULL};
       tokens[tokenc-1] = null_token;
     }
 
+    printf("hello\n");
     if (strcmp(tokens[0].value, "cd") == 0) {
       const char *dir =(tokens[1].type == TOK_WORD) ? tokens[1].value : "/home";
       if(chdir(dir) != 0) perror("cd");
