@@ -236,13 +236,59 @@ int main () {
 
 
 
-    printf("heyyy===\n");
-
-
-    printf(" -1 -1 : %s\n", tokens[tokenc - 2].value);
 
 
     if (tokenc == 0) continue;
+
+
+    for (ssize_t i = 0; i < commandc - 1; i++) {
+      char **head_command = commandc.argv[0];
+      // tokenc -1 -1 because we want to look at second to the last token, since last is null token
+      // tokenc is guranteed to atleast have length 2
+      // if (strcmp(tokens[tokenc - 1 -1].value, "&") == 0) {
+      //   background = 1;
+      //   // i think this is not needed 
+      //   Token null_token = {TOK_NULL, NULL};
+      //   tokens[tokenc-1] = null_token;
+      // }
+      
+      if (strcmp(*head_command, "cd") == 0) {
+        const char *dir =(tokens[1].type == TOK_WORD) ? tokens[1].value : "/home";
+        if(chdir(dir) != 0) perror("cd");
+      } else if (strcmp(tokens[0].value, "exit") == 0) {
+              // included user specified exit code for completeness
+        int code = (tokens[1].type == TOK_WORD) ? atoi(tokens[1].value) : 0;
+              // != NULL not because at default uninitialized indices in arrays are null
+              // but it alr guarantees that the first unused index is NULL
+        exit(code);
+      } else {
+        pid_t pid = fork();
+
+        if (pid == 0) {
+          // printf("child performing\n");
+          char *argv[MAXARGS];
+          int tokenc_notnull = 0;
+          for (size_t i = 0; i < tokenc - 1; i++) {
+            // printf("%s %d\n", tokens[i].value, i);
+            argv[tokenc_notnull] = tokens[i].value;
+            tokenc_notnull++;
+          }
+          // for (int i = 0; i < tokenc; i++) {
+          //   printf("%s\n", argv[i]);
+          // }
+          execvp(tokens[0].value, argv);
+          perror("execvp");
+          exit(1);
+        } else {
+          if (background) printf("[pid] %d\n", pid);
+          else waitpid(pid, NULL, 0);
+        }
+      }
+
+    }
+
+    return -1;
+
 
     // tokenc -1 -1 because we want to look at second to the last token, since last is null token
     // tokenc is guranteed to atleast have length 2
