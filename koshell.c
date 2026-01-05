@@ -46,16 +46,17 @@ int tokenizer(Token *tokens, char *line, int line_length) {
       Token new_token =  {TOK_PIPE, NULL};
       tokens[tokenc] = new_token;
       i++;
+    }  else if (line[i] == '>' && line[i+1] == '>') {
+      Token new_token = {TOK_APPEND, NULL};
+      tokens[tokenc] = new_token;
+      i++;
+      i++;
     } else if (line [i] == '<') {
       Token new_token = {TOK_REDIR_IN, NULL};
       tokens[tokenc] = new_token;
       i++;
     } else if (line[i] == '>') {
       Token new_token =  {TOK_REDIR_OUT, NULL};
-      tokens[tokenc] = new_token;
-      i++;
-    } else if (line[i] == '>' && line[i+1] == '>') {
-      Token new_token = {TOK_APPEND, NULL};
       tokens[tokenc] = new_token;
       i++;
     } else {
@@ -90,14 +91,22 @@ int tokenizer(Token *tokens, char *line, int line_length) {
   return tokenc;
 }
 
-int parse_tokens(Command *commands, Token *tokens, int tokenc) {
+int parse_tokens(Command *commands, Token *tokens, int tokenc, int fds[]) {
   int commandc = 0;
   commands[commandc].argv.size = 0;
   commands[commandc].argv.capacity = 10;
   commands[commandc].argv.data = malloc(sizeof(char *) * 10);
 
+  // initialize in_fd and out_fd
+  commands[commandc].in_fd = -1;
+  commands[commandc].out_fd = -1;
+
+  printf("fds: %d %d\n", fds[0], fds[1]);
+
   for (int i = 0; i < tokenc; i++) {
     // printf("seeing %s at index %d with type %d\n", tokens[i].value, i, tokens[i].type);
+  
+
     switch(tokens[i].type) {
       case TOK_WORD :
         
@@ -111,11 +120,17 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         }
         if (i == 0) return -1;
         if ( tokens[i-1].type >0) return -1;
-        // commands[commandc].in_fd
+
+        commands[commandc].out_fd = fds[1];
+        commands[commandc].in_fd = -1;
+
 
         push(&commands[commandc].argv, NULL);
 
         commandc++;
+
+        commands[commandc].out_fd = -1;
+        commands[commandc].in_fd = fds[0];
 
         commands[commandc].argv.data = malloc(sizeof(char *) * 10);
         commands[commandc].argv.size = 0;
@@ -123,7 +138,6 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
 
         break;
       case TOK_REDIR_IN :
-        
         break;
       case TOK_REDIR_OUT :
         break;
@@ -154,6 +168,10 @@ int main () {
   ssize_t commandc = 0;
   Token tokens[MAXARGS];
   Command *commands = malloc(sizeof(Command) * INIT_COMMAND_SIZE);
+  int fds[2];
+  if(pipe(fds) < 0) {
+    perror("pipe");
+  }
 
   while (1) {
     if(getcwd(cwd, sizeof(cwd)) == NULL) {
@@ -167,10 +185,16 @@ int main () {
     n = getline(&line, &cap, stdin);
     if (n == -1) break;
 
+  
+    if (n == 1) {
+      // n == 1 if user input is nothing (enter);
+      continue;
+    }
+
 
     tokenc = tokenizer(tokens, line, n);
 
-    commandc = parse_tokens(commands,tokens, tokenc );
+    commandc = parse_tokens(commands,tokens, tokenc, fds);
     if (commandc < 0) {
       printf("syntax error: parsing tokens\n");
       continue;
@@ -187,8 +211,10 @@ int main () {
 
     for (ssize_t i = 0; i < commandc; i++) {
       printf("argv size : %d\n", commands[i].argv.size);
+      printf("in_fd: %d, out_fd: %d\n", commands[i].in_fd, commands[i].out_fd);
 
     }
+
 
 
 
