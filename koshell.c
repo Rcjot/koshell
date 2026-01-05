@@ -106,6 +106,15 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
 
         break;
       case TOK_PIPE :
+        if (i > 0) {
+          printf("token before : %d\n", tokens[i - 1].type);
+        }
+        if (i == 0) return -1;
+        if ( tokens[i-1].type >0) return -1;
+        // commands[commandc].in_fd
+
+        push(&commands[commandc].argv, NULL);
+
         commandc++;
 
         commands[commandc].argv.data = malloc(sizeof(char *) * 10);
@@ -121,6 +130,7 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
       case TOK_APPEND :
         break;
       case TOK_NULL :
+        push(&commands[commandc].argv, NULL);
         commandc++;
         break;
     }
@@ -141,7 +151,7 @@ int main () {
   ssize_t n;
   char cwd[1024];
   size_t tokenc = 0;
-  size_t commandc = 0;
+  ssize_t commandc = 0;
   Token tokens[MAXARGS];
   Command *commands = malloc(sizeof(Command) * INIT_COMMAND_SIZE);
 
@@ -161,14 +171,29 @@ int main () {
     tokenc = tokenizer(tokens, line, n);
 
     commandc = parse_tokens(commands,tokens, tokenc );
+    if (commandc < 0) {
+      printf("syntax error: parsing tokens\n");
+      continue;
+    }
 
 
     printf("tokens: %ld \n", tokenc);
     printf("commands: %ld \n", commandc);
 
-    // for (size_t i = 0; i < tokenc; i++) {
-    //   printf("%d %s\n", tokens[i].type, tokens[i].value);
-    // }
+    for (size_t i = 0; i < tokenc; i++) {
+      printf("%d %s\n", tokens[i].type, tokens[i].value);
+    }
+
+
+    for (ssize_t i = 0; i < commandc; i++) {
+      printf("argv size : %d\n", commands[i].argv.size);
+
+    }
+
+
+
+
+
 
     if (tokenc == 0) continue;
 
@@ -179,9 +204,6 @@ int main () {
       Token null_token = {TOK_NULL, NULL};
       tokens[tokenc-1] = null_token;
     }
-
-
-    
 
     if (strcmp(tokens[0].value, "cd") == 0) {
       const char *dir =(tokens[1].type == TOK_WORD) ? tokens[1].value : "/home";
