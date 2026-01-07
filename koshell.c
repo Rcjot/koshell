@@ -265,7 +265,13 @@ int main () {
         pid_t pid = fork();
 
         if (pid == 0) {
-          // printf("child performing\n");
+          printf("child performing\n");
+          if (commands[i].in_fd > 0) {
+            dup2(commands[i].in_fd, 0);
+          }
+          if (commands[i].out_fd > 0) {
+            dup2(commands[i].out_fd, 1);
+          }
           // char *argv[MAXARGS];
           // int tokenc_notnull = 0;
           // for (size_t i = 0; i < tokenc - 1; i++) {
@@ -280,8 +286,20 @@ int main () {
           perror("execvp");
           exit(1);
         } else {
+
           if (background) printf("[pid] %d\n", pid);
           else waitpid(pid, NULL, 0);
+          printf("command finished\n");
+          if (commands[i].out_fd > 0) {
+            // if child is write out we close fds 1 after it finishes
+            printf("closing fds 1\n");
+            close(fds[1]);
+          }
+          if (commands[i].in_fd > 0) {
+            if(pipe(fds) < 0) {
+              perror("pipe");
+            }
+          }
         }
       }
 
