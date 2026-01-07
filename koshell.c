@@ -95,7 +95,7 @@ int tokenizer(Token *tokens, char *line, int line_length) {
   return tokenc;
 }
 
-int parse_tokens(Command *commands, Token *tokens, int tokenc, int fds[]) {
+int parse_tokens(Command *commands, Token *tokens, int tokenc) {
   int commandc = 0;
   commands[commandc].argv.size = 0;
   commands[commandc].argv.capacity = 10;
@@ -130,7 +130,7 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc, int fds[]) {
         printf("token before : %d %s\n", tokens[i + 1].type, tokens[i + 1].value);
         if ( tokens[i+1].type > 0) return -1;
 
-        commands[commandc].out_fd = fds[1];
+        commands[commandc].out_fd = 1;
         commands[commandc].in_fd = -1;
 
 
@@ -139,7 +139,7 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc, int fds[]) {
         commandc++;
 
         commands[commandc].out_fd = -1;
-        commands[commandc].in_fd = fds[0];
+        commands[commandc].in_fd = 1;
 
         commands[commandc].argv.data = malloc(sizeof(char *) * 10);
         commands[commandc].argv.size = 0;
@@ -184,10 +184,6 @@ int main () {
   Token tokens[MAXARGS];
   Command *commands = malloc(sizeof(Command) * INIT_COMMAND_SIZE);
   int fds[2];
-  if(pipe(fds) < 0) {
-    perror("pipe");
-  }
-
   while (1) {
     if(getcwd(cwd, sizeof(cwd)) == NULL) {
       perror("getcwd");
@@ -214,7 +210,7 @@ int main () {
     }
     printf("tokens: %ld \n", tokenc);
 
-    commandc = parse_tokens(commands,tokens, tokenc, fds);
+    commandc = parse_tokens(commands,tokens, tokenc);
     printf("commandc: %ld \n", commandc);
     if (commandc < 0) {
       printf("syntax error: parsing tokens\n");
@@ -239,8 +235,23 @@ int main () {
 
     if (tokenc == 0) continue;
 
+    int prev_in_fd = -1;
 
     for (ssize_t i = 0; i < commandc; i++) {
+      Command curr_command = commands[i];
+      if(pipe(fds) < 0) {
+        perror("pipe");
+      }
+
+      if (curr_command.in_fd > 0) {
+        curr_command.in_fd = fds[0];
+      }
+      if (curr_command.out_fd > 0) {
+        curr_command.out_fd = fds[1];
+      }
+    
+
+     
       char **command_tokens = commands[i].argv.data;
       // tokenc -1 -1 because we want to look at second to the last token, since last is null token
       // tokenc is guranteed to atleast have length 2
@@ -265,12 +276,12 @@ int main () {
         pid_t pid = fork();
 
         if (pid == 0) {
-          printf("child performing\n");
-          if (commands[i].in_fd > 0) {
-            dup2(commands[i].in_fd, 0);
+          printf("child performing with prev_in_fd: %d out_fd: %d\n", prev_in_fd, commands[i].out_fd);
+          if (prev_in_fd > 0) {
+            dup2(prev_in_fd, 0);
           }
-          if (commands[i].out_fd > 0) {
-            dup2(commands[i].out_fd, 1);
+          if (curr_command.out_fd > 0) {
+            dup2(curr_command.out_fd, 1);
           }
           // char *argv[MAXARGS];
           // int tokenc_notnull = 0;
@@ -290,16 +301,18 @@ int main () {
           if (background) printf("[pid] %d\n", pid);
           else waitpid(pid, NULL, 0);
           printf("command finished\n");
+          // free allocated memory for strings here
+
           if (commands[i].out_fd > 0) {
             // if child is write out we close fds 1 after it finishes
             printf("closing fds 1\n");
             close(fds[1]);
           }
-          if (commands[i].in_fd > 0) {
-            if(pipe(fds) < 0) {
-              perror("pipe");
-            }
+          if (prev_in_fd > 0) {
+            close(prev_in_fd);
           }
+          prev_in_fd = fds[0];
+          // when do we close this
         }
       }
 
