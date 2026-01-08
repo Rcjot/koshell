@@ -194,6 +194,7 @@ int main () {
     int background = 0;
 
     n = getline(&line, &cap, stdin);
+    printf("n: %ld   %s\n", n, line);
     if (n == -1) break;
 
     printf("line n : %ld\n", n);
@@ -229,95 +230,56 @@ int main () {
 
     }
 
-
-
-
-
     if (tokenc == 0) continue;
 
+    printf("----------------------- \n");
     int prev_in_fd = -1;
+
+    pid_t pid;
 
     for (ssize_t i = 0; i < commandc; i++) {
       Command curr_command = commands[i];
-      if(pipe(fds) < 0) {
-        perror("pipe");
-      }
+      char **command_tokens = curr_command.argv.data;
+      int has_pipe = (i != commandc - 1);
 
-      if (curr_command.in_fd > 0) {
-        curr_command.in_fd = fds[0];
-      }
-      if (curr_command.out_fd > 0) {
-        curr_command.out_fd = fds[1];
-      }
-    
+      printf("%ld of %ld\n", i, commandc);
 
-     
-      char **command_tokens = commands[i].argv.data;
-      // tokenc -1 -1 because we want to look at second to the last token, since last is null token
-      // tokenc is guranteed to atleast have length 2
-      // if (strcmp(tokens[tokenc - 1 -1].value, "&") == 0) {
-      //   background = 1;
-      //   // i think this is not needed 
-      //   Token null_token = {TOK_NULL, NULL};
-      //   tokens[tokenc-1] = null_token;
-      // }
-      
-      if (strcmp(command_tokens[0], "cd") == 0) {
-
-        const char *dir =(command_tokens[1] != NULL) ? command_tokens[1] : "/home";
-        if(chdir(dir) != 0) perror("cd");
-      } else if (strcmp(tokens[0].value, "exit") == 0) {
-              // included user specified exit code for completeness
-        int code = (command_tokens[1] != NULL) ? atoi(command_tokens[1]) : 0;
-              // != NULL not because at default uninitialized indices in arrays are null
-              // but it alr guarantees that the first unused index is NULL
-        exit(code);
-      } else {
-        pid_t pid = fork();
-
-        if (pid == 0) {
-          printf("child performing with prev_in_fd: %d out_fd: %d\n", prev_in_fd, commands[i].out_fd);
-          if (prev_in_fd > 0) {
-            dup2(prev_in_fd, 0);
-          }
-          if (curr_command.out_fd > 0) {
-            dup2(curr_command.out_fd, 1);
-          }
-          // char *argv[MAXARGS];
-          // int tokenc_notnull = 0;
-          // for (size_t i = 0; i < tokenc - 1; i++) {
-          //   // printf("%s %d\n", tokens[i].value, i);
-          //   argv[tokenc_notnull] = command_tokens[i].value;
-          //   tokenc_notnull++;
-          // }
-          // for (int i = 0; i < tokenc; i++) {
-          //   printf("%s\n", argv[i]);
-          // }
-          execvp(command_tokens[0], command_tokens);
-          perror("execvp");
+      if (has_pipe) {
+        if (pipe(fds)<0) {
+          perror("pipe");
           exit(1);
-        } else {
+        }     
+        printf("piped fds[0] %d, fds[1] %d\n", fds[0], fds[1]);
+      }
 
-          if (background) printf("[pid] %d\n", pid);
-          else waitpid(pid, NULL, 0);
-          printf("command finished\n");
-          // free allocated memory for strings here
 
-          if (commands[i].out_fd > 0) {
-            // if child is write out we close fds 1 after it finishes
-            printf("closing fds 1\n");
-            close(fds[1]);
-          }
-          if (prev_in_fd > 0) {
-            close(prev_in_fd);
-          }
+      pid = fork();
+      printf("forking %d\n", pid);
+
+      if (pid == 0) {
+        printf("     child with in_fd %d out_fd %d with prev_in_fd %d\n", curr_command.in_fd, curr_command.out_fd, prev_in_fd);
+        printf("     fds[0] %d, fds[1] %d\n", fds[0], fds[1]);
+        if (curr_command.in_fd > 0) {
+          dup2(prev_in_fd, 0);
+          close(prev_in_fd);
+        }
+        if (curr_command.out_fd > 0) {
+          dup2(fds[1], 1);
+          close(fds[1]);
+        }
+        execvp(command_tokens[0], command_tokens);
+        perror("execvp");
+        exit(1);
+      } else {
+        if (has_pipe) {
+          close(prev_in_fd);
+          printf("     closing reader: %d\n", prev_in_fd);
           prev_in_fd = fds[0];
-          // when do we close this
+          close(fds[1]);
+          printf("     closing writer: %d\n", fds[1]);
         }
       }
-
     }
-
-    
+    while (wait(NULL) > 0); 
   }
 }
