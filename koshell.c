@@ -131,7 +131,9 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         if ( tokens[i+1].type > 0) return -1;
 
         commands[commandc].out_fd = 1;
-        commands[commandc].in_fd = -1;
+        if (i == 0) {
+          commands[commandc].in_fd = -1;
+        }
 
 
         push(&commands[commandc].argv, NULL);
