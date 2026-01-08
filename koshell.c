@@ -184,6 +184,8 @@ int main () {
   Token tokens[MAXARGS];
   Command *commands = malloc(sizeof(Command) * INIT_COMMAND_SIZE);
   int fds[2];
+  fds[0] = -1;
+  fds[1] = -1;
   while (1) {
     if(getcwd(cwd, sizeof(cwd)) == NULL) {
       perror("getcwd");
@@ -242,7 +244,7 @@ int main () {
       char **command_tokens = curr_command.argv.data;
       int has_pipe = (i != commandc - 1);
 
-      printf("%ld of %ld\n", i, commandc);
+      // printf("%ld of %ld\n", i, commandc);
 
       if (has_pipe) {
         if (pipe(fds)<0) {
@@ -257,13 +259,16 @@ int main () {
       printf("forking %d\n", pid);
 
       if (pid == 0) {
+        printf("     %s\n", command_tokens[0]);
         printf("     child with in_fd %d out_fd %d with prev_in_fd %d\n", curr_command.in_fd, curr_command.out_fd, prev_in_fd);
         printf("     fds[0] %d, fds[1] %d\n", fds[0], fds[1]);
         if (curr_command.in_fd > 0) {
           dup2(prev_in_fd, 0);
+          printf("     reading from %d\n", prev_in_fd);
           close(prev_in_fd);
         }
         if (curr_command.out_fd > 0) {
+          printf("     writing to %d\n", fds[1]);
           dup2(fds[1], 1);
           close(fds[1]);
         }
@@ -271,12 +276,27 @@ int main () {
         perror("execvp");
         exit(1);
       } else {
+        printf("parent\n");
+        printf("     command with in_fd:  %d, out_fd:  %d\n", curr_command.in_fd, curr_command.out_fd);
+        printf("        with prev_in_fd %d\n", prev_in_fd);
+        printf("     fds[0] %d, fds[1] %d\n", fds[0], fds[1]);
+        
         if (has_pipe) {
           close(prev_in_fd);
-          printf("     closing reader: %d\n", prev_in_fd);
+          printf("     has pipe: closing previous reader: %d\n", prev_in_fd);
           prev_in_fd = fds[0];
+          printf("     assigned prev_in_fd = %d\n",  fds[0]);
           close(fds[1]);
-          printf("     closing writer: %d\n", fds[1]);
+          printf("     has pipe: closing writer: %d\n", fds[1]);
+        } else {
+          if (curr_command.in_fd < 0) {
+            printf("     no pipe: closing previous reader: %d\n", prev_in_fd);
+            close(prev_in_fd);
+          }
+          if (curr_command.out_fd < 0) {
+            printf("     no pipe: closing writer: %d\n", fds[1]);
+            close(fds[1]);
+          }  
         }
       }
     }
