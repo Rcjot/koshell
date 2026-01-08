@@ -254,6 +254,9 @@ int main () {
           exit(1);
         }     
         printf("piped fds[0] %d, fds[1] %d\n", fds[0], fds[1]);
+      } else {
+        fds[0] = -1;
+        fds[1] = -1;
       }
 
 
@@ -264,16 +267,24 @@ int main () {
         printf("     %s\n", command_tokens[0]);
         printf("     child with in_fd %d out_fd %d with prev_in_fd %d\n", curr_command.in_fd, curr_command.out_fd, prev_in_fd);
         printf("     fds[0] %d, fds[1] %d\n", fds[0], fds[1]);
+
+        printf("     > child closing fds[0] : %d\n", fds[0]);
+        close(fds[0]);
+
         if (curr_command.in_fd > 0) {
           dup2(prev_in_fd, 0);
           printf("     reading from %d\n", prev_in_fd);
           close(prev_in_fd);
-        }
+        }        
+
         if (curr_command.out_fd > 0) {
           printf("     writing to %d\n", fds[1]);
           dup2(fds[1], 1);
           close(fds[1]);
+        } else {
+          close(fds[1]);
         }
+
         execvp(command_tokens[0], command_tokens);
         perror("execvp");
         exit(1);
@@ -285,18 +296,16 @@ int main () {
         
         if (has_pipe) {
           close(prev_in_fd);
-          printf("     has pipe: closing previous reader: %d\n", prev_in_fd);
+          printf("     > has pipe: closing previous reader: %d\n", prev_in_fd);
           prev_in_fd = fds[0];
           printf("     assigned prev_in_fd = %d\n",  fds[0]);
           close(fds[1]);
-          printf("     has pipe: closing writer: %d\n", fds[1]);
+          printf("     > has pipe: closing writer: %d\n", fds[1]);
         } else {
-          if (curr_command.in_fd < 0) {
-            printf("     no pipe: closing previous reader: %d\n", prev_in_fd);
-            close(prev_in_fd);
-          }
+          printf("     > no pipe: closing previous reader: %d\n", prev_in_fd);
+          close(prev_in_fd);
           if (curr_command.out_fd < 0) {
-            printf("     no pipe: closing writer: %d\n", fds[1]);
+            printf("     > no pipe: closing writer: %d\n", fds[1]);
             close(fds[1]);
           }  
         }
