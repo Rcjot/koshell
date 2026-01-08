@@ -195,7 +195,7 @@ int main () {
     printf("koshell:%s> ", cwd);
     fflush(stdout);
     
-    int background = 0;
+    // int background = 0;
 
     n = getline(&line, &cap, stdin);
     printf("n: %ld   %s\n", n, line);
@@ -293,18 +293,19 @@ int main () {
         printf("     command with in_fd:  %d, out_fd:  %d\n", curr_command.in_fd, curr_command.out_fd);
         printf("        with prev_in_fd %d\n", prev_in_fd);
         printf("     fds[0] %d, fds[1] %d\n", fds[0], fds[1]);
+
+        printf("     > closing previous reader: %d\n", prev_in_fd);
+        close(prev_in_fd);
         
         if (has_pipe) {
-          close(prev_in_fd);
-          printf("     > has pipe: closing previous reader: %d\n", prev_in_fd);
           prev_in_fd = fds[0];
           printf("     assigned prev_in_fd = %d\n",  fds[0]);
           close(fds[1]);
           printf("     > has pipe: closing writer: %d\n", fds[1]);
         } else {
-          printf("     > no pipe: closing previous reader: %d\n", prev_in_fd);
-          close(prev_in_fd);
+          prev_in_fd = -1;
           if (curr_command.out_fd < 0) {
+            // might be unnecessary since out_fd < 0 means no pipe fds[1]
             printf("     > no pipe: closing writer: %d\n", fds[1]);
             close(fds[1]);
           }  
