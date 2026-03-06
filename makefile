@@ -10,7 +10,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -g -O1 -fsanitize=address -fno-omit-frame-pointer
 
 # Source files
-SRCS = koshell.c dynarray.c
+SRCS = koshell.c dynarray.c parser.c
 
 # Object files (replace .c with .o)
 OBJS = $(SRCS:.c=.o)
