@@ -67,7 +67,6 @@ int tokenizer(Token *tokens, char *line, int line_length) {
     
 
       char *token_value = malloc(128);
-      printf("malloced for token_value\n");
       // i did not handle anything for tokens that exceed 128 characters
       int s = 0;
       // iterator for token_value
@@ -102,7 +101,6 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
 
   // allocate only 10 tokens in an argv
   commands[commandc].argv.data = malloc(sizeof(char *) * 10);
-  printf("malloced for command tokens\n");
 
 
   // initialize in_fd and out_fd
@@ -113,6 +111,7 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
 
   for (int i = 0; i < tokenc; i++) {
     // ITERATE tokens
+
 
     switch(tokens[i].type) {
       case TOK_WORD :
@@ -143,6 +142,7 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
 
         push(&commands[commandc].argv, NULL);
 
+        // increment next command
         commandc++;
 
         commands[commandc].out_fd = -1;
@@ -150,7 +150,6 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
 
         // allocate only 10 tokens in an argv?
         commands[commandc].argv.data = malloc(sizeof(char *) * 10);
-        printf("malloced for commandc tokens\n");
         commands[commandc].argv.size = 0;
         commands[commandc].argv.capacity = 10;
 
@@ -160,12 +159,22 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         // means if next token is not TOK_WORD
         if (tokens[i+1].type > 0) return -1;
 
-        // push(&commands[commandc].argv, NULL);
-        //
-        // int command_before = comandc - 1; 
-        // commands[]
-        //
-        //
+        if (commands[commandc].in_fd > 1) {
+          // this avoids fd leaks ex. wc < file1 < file2
+          close(commands[commandc].in_fd);
+        }
+
+        // next token should be TOK_WORD and is a file
+        // we don't include it in the commands argv, thats why ++i
+        int next_tok = ++i;
+
+        int open_fd = open(tokens[next_tok].value, O_RDONLY);
+        if (open_fd < 0) {
+          perror("cant find directory");
+          return -1;
+        }
+        commands[commandc].in_fd = open_fd;
+
         break;
       case TOK_REDIR_OUT : // >
         if (i == 0) return -1;

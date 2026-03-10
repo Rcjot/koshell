@@ -94,7 +94,10 @@ int main () {
         // child
         close(fds[0]);
 
-        if (curr_command.in_fd > 0) {
+        if (curr_command.in_fd > 1) {
+          dup2(curr_command.in_fd, 0);
+          close(curr_command.in_fd);
+        } else if (curr_command.in_fd > 0) {
           // change stdin to prev_in_fd
           dup2(prev_in_fd, 0);
           // remember fds are just ints that point to a buffer
@@ -116,6 +119,12 @@ int main () {
       } else {
         // parent
         close(prev_in_fd);
+
+        // for specific file fds (redirect_in)
+        if (curr_command.in_fd > 1) {
+          // printf("%d\n", curr_command.in_fd);
+          close(curr_command.in_fd);
+        }
         
         if (has_pipe) {
           // assign prev_in_fd to pipe read
