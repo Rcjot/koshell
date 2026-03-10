@@ -29,3 +29,11 @@ void push(DynArgv *arr, char *token) {
   // can also do : arr->data[arr->size] = num;
   arr -> size++;
 }
+
+
+void free_data(DynArgv *arr) {
+  for (int i = 0; i < arr -> size; i++) {
+    free(arr -> data[i]);
+  }
+  free(arr -> data);
+}

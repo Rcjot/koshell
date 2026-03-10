@@ -8,7 +8,6 @@
 #include "parser.h"
 
 
-
 int main () {
   
   char *line = NULL;
@@ -60,7 +59,7 @@ int main () {
     }
 
     // for (ssize_t i = 0; i < commandc; i++) {
-    //   printf("argv size : %d\n", commands[i].argv.size)k
+    //   printf("argv size : %d\n", commands[i].argv.size);
     //   printf("in_fd: %d, out_fd: %d\n", commands[i].in_fd, commands[i].out_fd);
     //
     // }
@@ -128,6 +127,15 @@ int main () {
         }
       }
     }
+
+
+    for (ssize_t i = 0; i < commandc; i++) {
+      free_data(&commands[i].argv);
+    }
+
     while (wait(NULL) > 0); 
   }
+
+  free(commands);
+  free(line);
 }

@@ -32,4 +32,6 @@ typedef struct {
 
 void push(DynArgv *arr, char *token);
 
+void free_data(DynArgv *arr);
+
 #endif 
