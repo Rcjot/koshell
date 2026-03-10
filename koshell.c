@@ -106,7 +106,11 @@ int main () {
           close(prev_in_fd);
         }        
 
-        if (curr_command.out_fd > 0) {
+        if (curr_command.out_fd > 1) {
+          // printf("duped out_fd %d\n", curr_command.out_fd);
+          dup2(curr_command.out_fd, 1);
+          close(curr_command.out_fd);
+        } else if (curr_command.out_fd > 0) {
           // change stdout to fds[1] write end of pipe
           dup2(fds[1], 1);
         }
@@ -122,10 +126,15 @@ int main () {
 
         // for specific file fds (redirect_in)
         if (curr_command.in_fd > 1) {
-          // printf("%d\n", curr_command.in_fd);
+          printf("in_fd %d\n", curr_command.in_fd);
           close(curr_command.in_fd);
         }
-        
+        if (curr_command.out_fd > 1) {
+          printf("out_fd %d\n", curr_command.out_fd);
+          close(curr_command.out_fd);
+        }
+
+
         if (has_pipe) {
           // assign prev_in_fd to pipe read
           prev_in_fd = fds[0];

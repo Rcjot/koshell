@@ -114,14 +114,14 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
 
 
     switch(tokens[i].type) {
-      case TOK_WORD :
-        
+      case TOK_WORD :{        
         // printf("token %d : %s\n", i,  tokens[i].value);
         push(&commands[commandc].argv, tokens[i].value);
         // push is a defined helper function for dynarr
 
         break;
-      case TOK_PIPE :
+      }
+      case TOK_PIPE : {
         // printf("current idx : %d\n", i);
         // if (i > 0) {
         //   printf("token before : %d %s\n", tokens[i + 1].type, tokens[i + 1].value);
@@ -154,7 +154,9 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         commands[commandc].argv.capacity = 10;
 
         break;
-      case TOK_REDIR_IN : // <
+
+      }
+      case TOK_REDIR_IN : {// <
         if (i == 0) return -1;
         // means if next token is not TOK_WORD
         if (tokens[i+1].type > 0) return -1;
@@ -169,6 +171,10 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         int next_tok = ++i;
 
         int open_fd = open(tokens[next_tok].value, O_RDONLY);
+        free(tokens[next_tok].value);
+        // we free since we wont keep this TOK_WORD token
+        // freeing for other tokens is done later in the commands
+
         if (open_fd < 0) {
           perror("cant find directory");
           return -1;
@@ -176,18 +182,61 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         commands[commandc].in_fd = open_fd;
 
         break;
-      case TOK_REDIR_OUT : // >
+      }
+      case TOK_REDIR_OUT : { // >
         if (i == 0) return -1;
         if ( tokens[i+1].type > 0) return -1;
+
+        if (commands[commandc].out_fd > 1) {
+          close(commands[commandc].out_fd);
+        }
+
+        // next token should be TOK_WORD and is a file
+        // we don't include it in the commands argv, thats why ++i
+        int next_tok = ++i;
+
+        int open_fd = open(tokens[next_tok].value, O_WRONLY | O_CREAT | O_TRUNC, 0644); 
+        free(tokens[next_tok].value);
+
+        if (open_fd < 0) {
+          perror("cant find directory");
+          return -1;
+        }
+        commands[commandc].out_fd = open_fd;
+
+
         break;
-      case TOK_APPEND : // >>
+      }
+      case TOK_APPEND : {// >>
         if (i == 0) return -1;
         if ( tokens[i+1].type > 0) return -1;
+
+        if (commands[commandc].out_fd > 1) {
+          close(commands[commandc].out_fd);
+        }
+
+        // next token should be TOK_WORD and is a file
+        // we don't include it in the commands argv, thats why ++i
+        int next_tok = ++i;
+
+        int open_fd = open(tokens[next_tok].value, O_WRONLY | O_CREAT | O_APPEND, 0644); 
+        free(tokens[next_tok].value);
+
+        if (open_fd < 0) {
+          perror("cant find directory");
+          return -1;
+        }
+        commands[commandc].out_fd = open_fd;
+
+
+
         break;
-      case TOK_NULL :
+      }
+      case TOK_NULL : {
         push(&commands[commandc].argv, NULL);
         commandc++;
         break;
+      }
     }
 
   }
