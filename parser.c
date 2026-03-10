@@ -35,14 +35,10 @@ int tokenizer(Token *tokens, char *line, int line_length) {
   // bcus i think getline doesnt automatically append '\0' but '\n'
   size_t tokenc = 0;
   int i = 0;
-  // int bool = is_builtin('\0');
-  // printf("%d linelgnth: %d\n", line_length, bool);
 
   // do not include null terminator in parsing line
   while (i < line_length - 1) {
-    // printf("%c is the character at %d\n", line[i], i);
     if (is_whitespace(line[i])) {
-      // printf("        %c is the character at %d is whitespace\n", line[i], i);
       i++;
       continue;
     } else if (line[i] == '|') {
@@ -67,18 +63,21 @@ int tokenizer(Token *tokens, char *line, int line_length) {
       i++;
       tokenc++;
     } else {
+      // IF TOK_WORD
+    
+
       char *token_value = malloc(128);
       // i did not handle anything for tokens that exceed 128 characters
       int s = 0;
+      // iterator for token_value
 
       while (!is_whitespace(line[i]) && !is_builtin(line[i])  && i < line_length) {
-        // printf("%d %d %c %d %d\n", s, i, line[i], line_length, !is_whitespace(line[i]));
         token_value[s] = line[i];
         i++;
         s++;
       }
       if (token_value[s-1] != '\0') {
-        // to handle token to always have \0, two cases: token is between tokens or token is last token
+        // to handle token to always have \0, two cases: token is between tokens(builtin) or token is last token
         token_value[s] = '\0';
       }
       
@@ -88,7 +87,6 @@ int tokenizer(Token *tokens, char *line, int line_length) {
     }
   }
 
-  // printf("passed last tokenc is %ld\n", tokenc);
   Token null_token = {TOK_NULL, NULL};
   tokens[tokenc++] = null_token;
   // for convention and clarity, to mark end of token list should be null
@@ -106,29 +104,30 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
   commands[commandc].in_fd = -1;
   commands[commandc].out_fd = -1;
 
-  printf("tokenc: %d\n", tokenc);
-
-  // printf("fds: %d %d\n", fds[0], fds[1]);
+  // printf("tokenc: %d\n", tokenc);
 
   for (int i = 0; i < tokenc; i++) {
-    // printf("seeing %s at index %d with type %d\n", tokens[i].value, i, tokens[i].type);
-  
+    // ITERATE tokens
 
     switch(tokens[i].type) {
       case TOK_WORD :
         
-        printf("token %d : %s\n", i,  tokens[i].value);
+        // printf("token %d : %s\n", i,  tokens[i].value);
         push(&commands[commandc].argv, tokens[i].value);
-        // printf(" %s pushed\n", tokens[i].value);
+        // push is a defined helper function for dynarr
 
         break;
       case TOK_PIPE :
-        printf("current idx : %d\n", i);
+        // printf("current idx : %d\n", i);
         // if (i > 0) {
         //   printf("token before : %d %s\n", tokens[i + 1].type, tokens[i + 1].value);
         // }
+
+        // if i == 0 means its the first token of the line
         if (i == 0) return -1;
-        printf("token before : %d %s\n", tokens[i + 1].type, tokens[i + 1].value);
+
+        // printf("token before : %d %s\n", tokens[i + 1].type, tokens[i + 1].value);
+        // 
         if ( tokens[i+1].type > 0) return -1;
 
         commands[commandc].out_fd = 1;
@@ -144,20 +143,21 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         commands[commandc].out_fd = -1;
         commands[commandc].in_fd = 1;
 
+        // allocate only 10 tokens in an argv?
         commands[commandc].argv.data = malloc(sizeof(char *) * 10);
         commands[commandc].argv.size = 0;
         commands[commandc].argv.capacity = 10;
 
         break;
-      case TOK_REDIR_IN :
+      case TOK_REDIR_IN : // <
         if (i == 0) return -1;
         if ( tokens[i+1].type > 0) return -1;
         break;
-      case TOK_REDIR_OUT :
+      case TOK_REDIR_OUT : // >
         if (i == 0) return -1;
         if ( tokens[i+1].type > 0) return -1;
         break;
-      case TOK_APPEND :
+      case TOK_APPEND : // >>
         if (i == 0) return -1;
         if ( tokens[i+1].type > 0) return -1;
         break;
