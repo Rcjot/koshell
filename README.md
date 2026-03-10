@@ -1,8 +1,6 @@
 # koshell
 
----
-
 to do :
 
-- cd and & background
 - tokenizing quotations "" ''
+- cd and & background
