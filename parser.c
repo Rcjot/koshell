@@ -122,16 +122,10 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         break;
       }
       case TOK_PIPE : {
-        // printf("current idx : %d\n", i);
-        // if (i > 0) {
-        //   printf("token before : %d %s\n", tokens[i + 1].type, tokens[i + 1].value);
-        // }
-
+        
         // if i == 0 means its the first token of the line
         if (i == 0) return -1;
 
-        // printf("token before : %d %s\n", tokens[i + 1].type, tokens[i + 1].value);
-        // 
         if ( tokens[i+1].type > 0) return -1;
 
         commands[commandc].out_fd = 1;
@@ -176,6 +170,10 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         // freeing for other tokens is done later in the commands
 
         if (open_fd < 0) {
+          // if input file doesnt exist
+          // we free commands here because commandc is not returned to main
+          // commandc + 1, since it hasn't incremented yet
+          free_commands(commands, commandc + 1);
           perror("cant find directory");
           return -1;
         }
@@ -198,12 +196,7 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         int open_fd = open(tokens[next_tok].value, O_WRONLY | O_CREAT | O_TRUNC, 0644); 
         free(tokens[next_tok].value);
 
-        if (open_fd < 0) {
-          perror("cant find directory");
-          return -1;
-        }
         commands[commandc].out_fd = open_fd;
-
 
         break;
       }
@@ -222,10 +215,6 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         int open_fd = open(tokens[next_tok].value, O_WRONLY | O_CREAT | O_APPEND, 0644); 
         free(tokens[next_tok].value);
 
-        if (open_fd < 0) {
-          perror("cant find directory");
-          return -1;
-        }
         commands[commandc].out_fd = open_fd;
 
 

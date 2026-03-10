@@ -146,10 +146,7 @@ int main () {
       }
     }
 
-
-    for (ssize_t i = 0; i < commandc; i++) {
-      free_data(&commands[i].argv);
-    }
+    free_commands(commands, commandc);
 
     while (wait(NULL) > 0); 
   }

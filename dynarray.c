@@ -37,3 +37,9 @@ void free_data(DynArgv *arr) {
   }
   free(arr -> data);
 }
+
+void free_commands(Command *commands, ssize_t commandc) {
+  for (ssize_t i = 0; i < commandc; i++) {
+    free_data(&commands[i].argv);
+  }
+} 

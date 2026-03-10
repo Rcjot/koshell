@@ -34,4 +34,6 @@ void push(DynArgv *arr, char *token);
 
 void free_data(DynArgv *arr);
 
+void free_commands(Command *commands, ssize_t commandc);
+
 #endif 
