@@ -14,7 +14,7 @@ int main () {
   size_t cap = 0;
   ssize_t n;
   char cwd[1024];
-  size_t tokenc = 0;
+  ssize_t tokenc = 0;
   ssize_t commandc = 0;
   Token tokens[MAXARGS];
   Command *commands = malloc(sizeof(Command) * INIT_COMMAND_SIZE);
@@ -46,6 +46,11 @@ int main () {
 
 
     tokenc = tokenizer(tokens, line, n);
+    if (tokenc < 0) {
+      printf("syntax error: tokenizing\n");
+      continue;
+    }
+
     // for (size_t i = 0; i < tokenc; i++) {
     //   printf("%d %s\n", tokens[i].type, tokens[i].value);
     // }
@@ -58,11 +63,11 @@ int main () {
       continue;
     }
 
-    // for (ssize_t i = 0; i < commandc; i++) {
-    //   printf("argv size : %d\n", commands[i].argv.size);
-    //   printf("in_fd: %d, out_fd: %d\n", commands[i].in_fd, commands[i].out_fd);
-    //
-    // }
+    for (ssize_t i = 0; i < commandc; i++) {
+      printf("argv size : %d\n", commands[i].argv.size);
+      printf("in_fd: %d, out_fd: %d\n", commands[i].in_fd, commands[i].out_fd);
+
+    }
 
     if (tokenc == 0) continue;
 
