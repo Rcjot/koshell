@@ -124,9 +124,13 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
       case TOK_PIPE : {
         
         // if i == 0 means its the first token of the line
-        if (i == 0) return -1;
-
-        if ( tokens[i+1].type > 0) return -1;
+        if (i == 0 || tokens[i+1].type > 0) {
+          // means if next token is not TOK_WORD
+          
+          free_commands(commands, commandc + 1);
+          perror("unexpected token '|'");
+          return -1;
+        };
 
         commands[commandc].out_fd = 1;
         if (i == 0) {
@@ -151,9 +155,14 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
 
       }
       case TOK_REDIR_IN : {// <
-        if (i == 0) return -1;
-        // means if next token is not TOK_WORD
-        if (tokens[i+1].type > 0) return -1;
+        if (i == 0 || tokens[i+1].type > 0) {
+          // means if next token is not TOK_WORD
+          
+          free_commands(commands, commandc + 1);
+          perror("unexpected token '<'");
+          return -1;
+        };
+
 
         if (commands[commandc].in_fd > 1) {
           // this avoids fd leaks ex. wc < file1 < file2
@@ -182,8 +191,13 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         break;
       }
       case TOK_REDIR_OUT : { // >
-        if (i == 0) return -1;
-        if ( tokens[i+1].type > 0) return -1;
+        // if i == 0 means its the first token of the line
+        if (i == 0 || tokens[i+1].type > 0) {
+          // means if next token is not TOK_WORD
+          free_commands(commands, commandc + 1);
+          perror("unexpected token '>'");
+          return -1;
+        };
 
         if (commands[commandc].out_fd > 1) {
           close(commands[commandc].out_fd);
@@ -201,8 +215,14 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         break;
       }
       case TOK_APPEND : {// >>
-        if (i == 0) return -1;
-        if ( tokens[i+1].type > 0) return -1;
+        // if i == 0 means its the first token of the line
+        if (i == 0 || tokens[i+1].type > 0) {
+          // means if next token is not TOK_WORD
+          free_commands(commands, commandc + 1);
+          perror("unexpected token '>>'");
+          return -1;
+        };
+
 
         if (commands[commandc].out_fd > 1) {
           close(commands[commandc].out_fd);
