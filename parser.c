@@ -41,11 +41,11 @@ int tokenizer(Token *tokens, char *line, int line_length) {
 
   // do not include null terminator in parsing line
   while (i < line_length - 1) {
-    if (line[i] == '"') {
+    if (line[i] == '"' && quotes_wrap != '\'') {
       quotes_wrap = '"';
       i++;
-    } else if (line[i] == '`') {
-      quotes_wrap = '`';
+    } else if (line[i] == '\'' && quotes_wrap != '"') {
+      quotes_wrap = '\'';
       i++;
     } else if (quotes_wrap != ' ') {
       // considered as TOK WORD
