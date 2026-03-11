@@ -47,7 +47,7 @@ int main () {
 
     tokenc = tokenizer(tokens, line, n);
     if (tokenc < 0) {
-      printf("syntax error: tokenizing\n");
+      fprintf(stderr, "syntax error: tokenizing\n");
       continue;
     }
 
@@ -59,7 +59,7 @@ int main () {
     commandc = parse_tokens(commands,tokens, tokenc);
     // printf("commandc: %ld \n", commandc);
     if (commandc < 0) {
-      printf("syntax error: parsing tokens\n");
+      fprintf(stderr, "syntax error: parsing tokens\n");
       continue;
     }
 
@@ -70,6 +70,23 @@ int main () {
     // }
 
     if (tokenc == 0) continue;
+
+    if (strcmp(commands[0].argv.data[0], "cd") == 0) {
+      // ex. ["cd", "dest", NULL];
+      if (commands[0].argv.size > 3) {
+        fprintf(stderr, "cd: too many arguments\n");
+      } else {
+        int chret = chdir(commands[0].argv.data[1]);
+        if (chret < 0) {
+          perror("cd");
+        }
+        
+
+      }
+
+      free_commands(commands, commandc);
+      continue;
+    }
 
     int prev_in_fd = -1;
 

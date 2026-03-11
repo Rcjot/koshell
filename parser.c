@@ -67,8 +67,13 @@ int tokenizer(Token *tokens, char *line, int line_length) {
         quotes_wrap = ' ';
         i++;
       } else {
+
+        // free malloced tokens so far
+        for (size_t j = 0; j < tokenc; j++) {
+          free(tokens[j].value);
+        }
         free(token_value);
-        perror("tokenize error: unclosed quotations\n");
+        fprintf(stderr, "tokenize error: unclosed quotations\n");
         return -1;
       }
 
@@ -171,7 +176,7 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
           // means if next token is not TOK_WORD
           
           free_commands(commands, commandc + 1);
-          perror("unexpected token '|'");
+          fprintf(stderr, "unexpected token '|'");
           return -1;
         };
 
@@ -202,7 +207,7 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
           // means if next token is not TOK_WORD
           
           free_commands(commands, commandc + 1);
-          perror("unexpected token '<'");
+          fprintf(stderr, "unexpected token '<'");
           return -1;
         };
 
@@ -226,7 +231,7 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
           // we free commands here because commandc is not returned to main
           // commandc + 1, since it hasn't incremented yet
           free_commands(commands, commandc + 1);
-          perror("cant find directory");
+          perror("stdin");
           return -1;
         }
         commands[commandc].in_fd = open_fd;
@@ -238,7 +243,7 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         if (i == 0 || tokens[i+1].type > 0) {
           // means if next token is not TOK_WORD
           free_commands(commands, commandc + 1);
-          perror("unexpected token '>'");
+          fprintf(stderr, "unexpected token '>'");
           return -1;
         };
 
@@ -262,7 +267,7 @@ int parse_tokens(Command *commands, Token *tokens, int tokenc) {
         if (i == 0 || tokens[i+1].type > 0) {
           // means if next token is not TOK_WORD
           free_commands(commands, commandc + 1);
-          perror("unexpected token '>>'");
+          fprintf(stderr, "unexpected token '>>'");
           return -1;
         };
 
