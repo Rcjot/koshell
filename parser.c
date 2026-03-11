@@ -36,9 +36,52 @@ int tokenizer(Token *tokens, char *line, int line_length) {
   size_t tokenc = 0;
   int i = 0;
 
+  // track if quotes  " " or ' '
+  char quotes_wrap = NULL;
+
   // do not include null terminator in parsing line
   while (i < line_length - 1) {
-    if (is_whitespace(line[i])) {
+    if (line[i] == '"') {
+      quotes_wrap = '"';
+      i++;
+    } else if (line[i] == '`') {
+      quotes_wrap = '`';
+      i++;
+    } else if (quotes_wrap != NULL) {
+      // considered as TOK WORD
+
+      char *token_value = malloc(128);
+      // i did not handle anything for tokens that exceed 128 characters
+      int s = 1;
+      // iterator for token_value
+      token_value[0] = quotes_wrap;
+
+      // loop until quotes wrap
+      while (line[i] != quotes_wrap && i < line_length) {
+        token_value[s] = line[i];
+        i++;
+        s++;
+      }
+
+      // if while ended : either line[i] is quotes wrap or is max length
+      if (line[i] == quotes_wrap) {
+        quotes_wrap = NULL;
+      } else {
+        perror("tokenize error: unclosed quotations\n");
+        return -1;
+      }
+
+      if (token_value[s-1] != '\0') {
+        // to handle token to always have \0, two cases: token is between tokens(builtin) or token is last token
+        token_value[s] = '\0';
+      }
+      
+      Token new_token = {TOK_WORD, token_value};
+      tokens[tokenc] = new_token;
+      tokenc++;
+
+
+    } else if (is_whitespace(line[i])) {
       i++;
       continue;
     } else if (line[i] == '|') {
@@ -64,7 +107,6 @@ int tokenizer(Token *tokens, char *line, int line_length) {
       tokenc++;
     } else {
       // IF TOK_WORD
-    
 
       char *token_value = malloc(128);
       // i did not handle anything for tokens that exceed 128 characters
