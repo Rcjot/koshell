@@ -63,11 +63,11 @@ int main () {
       continue;
     }
 
-    for (ssize_t i = 0; i < commandc; i++) {
-      printf("argv size : %d\n", commands[i].argv.size);
-      printf("in_fd: %d, out_fd: %d\n", commands[i].in_fd, commands[i].out_fd);
-
-    }
+    // for (ssize_t i = 0; i < commandc; i++) {
+    //   printf("argv size : %d\n", commands[i].argv.size);
+    //   printf("in_fd: %d, out_fd: %d\n", commands[i].in_fd, commands[i].out_fd);
+    //
+    // }
 
     if (tokenc == 0) continue;
 
@@ -131,11 +131,11 @@ int main () {
 
         // for specific file fds (redirect_in)
         if (curr_command.in_fd > 1) {
-          printf("in_fd %d\n", curr_command.in_fd);
+          // printf("in_fd %d\n", curr_command.in_fd);
           close(curr_command.in_fd);
         }
         if (curr_command.out_fd > 1) {
-          printf("out_fd %d\n", curr_command.out_fd);
+          // printf("out_fd %d\n", curr_command.out_fd);
           close(curr_command.out_fd);
         }
 
