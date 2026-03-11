@@ -76,9 +76,10 @@ int main () {
       if (commands[0].argv.size > 3) {
         fprintf(stderr, "cd: too many arguments\n");
       } else {
-        int chret = chdir(commands[0].argv.data[1]);
+        char *home = getenv("HOME");
+        int chret = chdir((commands[0].argv.data[1] != NULL) ? commands[0].argv.data[1] : home);
         if (chret < 0) {
-          perror("cd");
+          perror("koshell: cd");
         }
         
 

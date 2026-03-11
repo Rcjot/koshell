@@ -2,5 +2,5 @@
 
 to do :
 
-- tokenizing quotations "" ''
-- cd and & background
+- backslash escape for " and '
+- & background
